@@ -20,7 +20,6 @@ class KernelOfThought(Module):
         self.max_iters = max_iters
         self.import_white_list = import_white_list
         self.input_fields = self.signature.input_fields
-        print(f"Printing input fields {self.input_fields}")
         self.output_fields = self.signature.output_fields
 
         self.variables = []
@@ -41,6 +40,7 @@ class KernelOfThought(Module):
                 self._generate_instruction("generate"),
             ),
         )
+        print(self.code_generate)
         self.code_regenerate = dspy.ChainOfThought(
             dspy.Signature(
                 self._generate_signature("regenerate").fields,
@@ -52,11 +52,6 @@ class KernelOfThought(Module):
         signature_dict = dict(self.input_fields)
         fields_for_mode = {
             "generate": {
-                "defined_variables": dspy.InputField(
-                    prefix="Defined Variables:",
-                    desc="list of previously defined variables in the IPynb environment",
-                    format=str,
-                ),
                 "generated_code": dspy.OutputField(
                     prefix="Code:",
                     desc="python code that answers the question",
