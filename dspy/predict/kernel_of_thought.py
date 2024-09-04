@@ -10,11 +10,18 @@ class KernelOfThought(Module):
     def __init__(self, signature, max_iters=3, import_white_list=None):
         super().__init__()
         self.signature = signature = ensure_signature(signature)
+        self.signature = self.signature.prepend(
+            "defined_variables",
+            dspy.InputField(prefix="Defined Variables:",
+            desc="list of previously defined variables in the IPynb environment",
+            format=str,)
+        )
+
         self.max_iters = max_iters
         self.import_white_list = import_white_list
-        
-        self.input_fields = signature.input_fields
-        self.output_fields = signature.output_fields
+        self.input_fields = self.signature.input_fields
+        print(f"Printing input fields {self.input_fields}")
+        self.output_fields = self.signature.output_fields
 
         self.variables = []
 
@@ -139,10 +146,10 @@ class KernelOfThought(Module):
         
     def forward(self, **kwargs):
         input_kwargs = {
-            field_name: kwargs[field_name] for field_name in self.input_fields
+             field_name: kwargs[field_name] for field_name in self.input_fields
         }
         # TODO: remove me later im temporary
-        input_kwargs.update({"defined_variables": kwargs['defined_variables']})
+        #input_kwargs.update({"defined_variables": kwargs['defined_variables']})
         # print(f'kwargs are as follows: {kwargs}')
         # print(f'input named are as follows: {self.input_fields}')
         code_data = self.code_generate(**input_kwargs)
