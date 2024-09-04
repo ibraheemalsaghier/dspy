@@ -22,7 +22,7 @@ class KernelOfThought(Module):
         self.import_white_list = import_white_list
         self.input_fields = self.signature.input_fields
         self.output_fields = self.signature.output_fields
-
+        print(self.input_fields)
         self.variables = []
 
         assert len(self.output_fields) == 1, "IT only supports one output field."
@@ -41,7 +41,6 @@ class KernelOfThought(Module):
                 self._generate_instruction("generate"),
             ),
         )
-        print(self.code_generate)
         self.code_regenerate = dspy.ChainOfThought(
             dspy.Signature(
                 self._generate_signature("regenerate").fields,
@@ -149,9 +148,11 @@ class KernelOfThought(Module):
                 self.state.add(var.strip())
     
     def forward(self, **kwargs):
+        kwargs["defined_variables"] = self.state
         input_kwargs = {
              field_name: kwargs[field_name] for field_name in self.input_fields
         }
+        print(f"printing defined variables {input_kwargs["defined_variables"]}")
         code_data = self.code_generate(**input_kwargs)
         parsed_code, error = self.parse_code(code_data)
         print(parsed_code)
