@@ -10,13 +10,14 @@ class KernelOfThought(Module):
     def __init__(self, signature, max_iters=3, import_white_list=None):
         super().__init__()
         self.signature = signature = ensure_signature(signature)
+        ### TODO is type set the best type to have for this? Maybe having the type be a map with key=name, value=type would be better
         self.signature = self.signature.prepend(
             "defined_variables",
             dspy.InputField(prefix="Defined Variables:",
             desc="list of previously defined variables in the IPynb environment",
-            format=str,)
+            format=set)
         )
-
+        self.state = set()
         self.max_iters = max_iters
         self.import_white_list = import_white_list
         self.input_fields = self.signature.input_fields
@@ -62,7 +63,7 @@ class KernelOfThought(Module):
                 "defined_variables": dspy.InputField(
                     prefix="Defined Variables:",
                     desc="list of previously defined variables in the IPynb environment",
-                    format=str,
+                    format=set,
                 ),
                 "error": dspy.InputField(
                     prefix="Error:",
@@ -138,15 +139,19 @@ class KernelOfThought(Module):
         except Exception as e:
             print("In exception")
             return code, None, str(e)
-        
+    def _update_state(self, result: str):
+        # Parse the result to update the state
+        # This is a simplified version; you might need more complex parsing
+        lines = result.strip().split('\n')
+        for line in reversed(lines):
+            if '=' in line:
+                var, value = line.split('=')
+                self.state.add(var.strip())
+    
     def forward(self, **kwargs):
         input_kwargs = {
              field_name: kwargs[field_name] for field_name in self.input_fields
         }
-        # TODO: remove me later im temporary
-        #input_kwargs.update({"defined_variables": kwargs['defined_variables']})
-        # print(f'kwargs are as follows: {kwargs}')
-        # print(f'input named are as follows: {self.input_fields}')
         code_data = self.code_generate(**input_kwargs)
         parsed_code, error = self.parse_code(code_data)
         print(parsed_code)
@@ -163,11 +168,13 @@ class KernelOfThought(Module):
             code, output, error = self.execute_code(parsed_code)
             print(error)
 
-            print(code)
-            print(output)
+            # print(code)
+            # print(output)
 
             hop += 1
             if hop == self.max_iters:
                 print("Max hops reached. Error persists.")
                 return None
+        self._update_state(code)
+        print(self.state)
         return output
